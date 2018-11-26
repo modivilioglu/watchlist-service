@@ -17,6 +17,52 @@ There are 3 Domain Models - Content, Customer and CustomerWatchList
 
 On Server Layer there is a Server model, called Contents, used to encapsulate Content List in POST request.
 
+## Technical Spec
+Implicit conversions and classes are implemented to
+
+- give extra behaviour to the existing class without modifying the code
+- to introduce |-| and |+| operations on CustomerWatchList case class in order to 
+simply show the logic of CRUD operations, and minimize the complexity on list operations
+on DAO code layer.   
+- provide a neater way to parse comma separated IDs in tests into Content Lists
+
+For example: 
+```$xslt
+val newWatchList = watchListOfCustomer |-| contents
+
+```
+enables a good understanding instead of 
+```
+val newList = customerWatchList.list.filter(content => !contents.contains(content))
+CustomerWatchList(newList, customerWatchList.customer)
+```
+This way the one who reads the code can simply symbolically understand the logic,
+rather than the implementation details.
+
+Likewise |+| operation is also introduced on the implicit class. For operations,
+it uses Monoid[List[Content]] for safely combining two Lists.
+```$xslt
+
+def |+| (contents: List[Content]) : CustomerWatchList = {
+      val newList = Monoid[List[Content]].combine(customerWatchList.list, contents).distinct
+      CustomerWatchList(newList, customerWatchList.customer)
+}
+```
+
+A CustomerWatchList specific Monoid, where 2 watchlists are combined together could also
+be created. However, the Api input represents always a Content List, so the operations are addition or subtraction
+of Contents to and from CustomerWatchList.
+
+## Akka HTTP and JSON responses
+There are 2 nice features that Akka HTTP provides
+- ExceptionHandler
+- RejectionHandler
+
+By overwriting your custom handlers you can marshall your RestResponses into JSON format.
+By that you guarantee the JSON responses in any case. Also for special cases, you can
+return special and more accurate HTTP Response Codes.
+
+
 ## How to Run
 
 ```
@@ -141,52 +187,6 @@ and 1 - 1 implemented
 For dependency injection, guice library is selected which is also used in Play Framework.
 The Injection is used to decouple the InMemoryDao from the Service layer, as later we might want to switch / add from
 reading from the Memory, to reading from a database or some other stream, so implementation is highly likely to change.
-
-## Technical Spec
-Implicit conversions and classes are implemented to
-
-- give extra behaviour to the existing class without modifying the code
-- to introduce |-| and |+| operations on CustomerWatchList case class in order to 
-simply show the logic of CRUD operations, and minimize the complexity on list operations
-on DAO code layer.   
-- provide a neater way to parse comma separated IDs in tests into Content Lists
-
-For example: 
-```$xslt
-val newWatchList = watchListOfCustomer |-| contents
-
-```
-enables a good understanding instead of 
-```
-val newList = customerWatchList.list.filter(content => !contents.contains(content))
-CustomerWatchList(newList, customerWatchList.customer)
-```
-This way the one who reads the code can simply symbolically understand the logic,
-rather than the implementation details.
-
-Likewise |+| operation is also introduced on the implicit class. For operations,
-it uses Monoid[List[Content]] for safely combining two Lists.
-```$xslt
-
-def |+| (contents: List[Content]) : CustomerWatchList = {
-      val newList = Monoid[List[Content]].combine(customerWatchList.list, contents).distinct
-      CustomerWatchList(newList, customerWatchList.customer)
-}
-```
-
-A CustomerWatchList specific Monoid, where 2 watchlists are combined together could also
-be created. However, the Api input represents always a Content List, so the operations are addition or subtraction
-of Contents to and from CustomerWatchList.
-
-## Akka HTTP and JSON responses
-There are 2 nice features that Akka HTTP provides
-- ExceptionHandler
-- RejectionHandler
-
-By overwriting your custom handlers you can marshall your RestResponses into JSON format.
-By that you guarantee the JSON responses in any case. Also for special cases, you can
-return special and more accurate HTTP Response Codes.
-
 
 ##  Further Enhancements
 Enabling new Dao classes are easy via Dependency injection. 
