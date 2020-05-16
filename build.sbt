@@ -44,3 +44,8 @@ lazy val root = (project in file(".")).
       "org.typelevel" %% "cats-effect" % "1.0.0"
     )
   )
+
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x => MergeStrategy.first
+}
