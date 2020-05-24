@@ -1,4 +1,6 @@
-FROM nginx
+FROM nginx:alpine
+
+RUN apk add openjdk8
 
 COPY target/scala-2.12/watchlist-service-assembly-0.1.0-SNAPSHOT.jar /
 
